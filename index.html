@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Robô Cripto</title>
+<meta name="description" content="Sinais da estratégia de tendência e carteira simulada com preços reais da Binance">
+<meta name="theme-color" content="#F2F4F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1220" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Robô Cripto">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="icon" type="image/png" href="icone-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: app de uma coluna para celular; cabeçalho fixo com par e tempo gráfico, abas embaixo. */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --surface-2: #E8ECF3; --line: #D6DCE7;
+  --fg: #111827; --muted: #5B6578; --accent: #2B54D9; --accent-fg: #FFFFFF;
+  --up: #12895A; --down: #D0343F; --warn: #B7791F;
+  --up-soft: #DDF3E9; --down-soft: #FBE3E5; --warn-soft: #FBEFD9; --accent-soft: #E1E8FC;
+  --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1220; --surface: #151C2E; --surface-2: #1D2640; --line: #283352;
+    --fg: #E8ECF5; --muted: #95A0B8; --accent: #7F9CFF; --accent-fg: #0D1220;
+    --up: #3CC48A; --down: #FF6B74; --warn: #E8B04B;
+    --up-soft: #12352A; --down-soft: #3A1B22; --warn-soft: #3A2D14; --accent-soft: #1F2A52;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1220; --surface: #151C2E; --surface-2: #1D2640; --line: #283352;
+  --fg: #E8ECF5; --muted: #95A0B8; --accent: #7F9CFF; --accent-fg: #0D1220;
+  --up: #3CC48A; --down: #FF6B74; --warn: #E8B04B;
+  --up-soft: #12352A; --down-soft: #3A1B22; --warn-soft: #3A2D14; --accent-soft: #1F2A52;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+button, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* cabeçalho */
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+.topo { display: flex; align-items: center; gap: 10px; padding-block: 10px; }
+.marca { font-weight: 800; letter-spacing: -0.01em; font-size: 15px; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+.marca i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.marca i.ok { background: var(--up); box-shadow: 0 0 0 3px var(--up-soft); }
+.marca i.erro { background: var(--down); }
+select#par { appearance: none; -webkit-appearance: none; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 28px 7px 10px; font-weight: 700; font-size: 14px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 5px 10px; border-radius: 8px; font-weight: 700; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+
+/* preço */
+.preco { padding-block: 18px 6px; display: grid; gap: 2px; }
+.preco small { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.preco .valor { font-size: clamp(30px, 9vw, 40px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+.pill.up { background: var(--up-soft); color: var(--up); }
+.pill.down { background: var(--down-soft); color: var(--down); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.neutro { background: var(--surface-2); color: var(--muted); }
+.pill.accent { background: var(--accent-soft); color: var(--accent); }
+.meta { color: var(--muted); font-size: 12.5px; }
+
+main { display: grid; gap: 14px; padding-block: 10px 24px; }
+section[hidden] { display: none !important; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.card h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.card h3 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); }
+
+/* estado do sinal */
+.estado { border-left: 0; position: relative; overflow: hidden; }
+.estado .faixa { position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--muted); }
+.estado.compra .faixa { background: var(--up); }
+.estado.venda .faixa { background: var(--down); }
+.estado.tendencia .faixa { background: var(--accent); }
+.estado.fora .faixa { background: var(--warn); }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.checks li { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; font-size: 14px; }
+.checks .ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.checks .sim .ic { background: var(--up-soft); color: var(--up); }
+.checks .nao .ic { background: var(--down-soft); color: var(--down); }
+.checks .v { color: var(--muted); font-size: 13px; }
+
+.grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.kpi { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.kpi span { font-size: 12px; color: var(--muted); font-weight: 600; }
+.kpi b { font-family: var(--font-num); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pos { color: var(--up); } .neg { color: var(--down); }
+
+canvas { width: 100%; display: block; border-radius: 10px; }
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legenda i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+
+.btn { border: 0; border-radius: 12px; padding: 13px 16px; font-weight: 800; background: var(--accent); color: var(--accent-fg); width: 100%; font-size: 15px; }
+.btn.sec { background: var(--surface-2); color: var(--fg); }
+.btn.perigo { background: var(--down-soft); color: var(--down); }
+.btn:disabled { opacity: .55; }
+.botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-weight: 700; font-size: 13px; color: var(--muted); }
+.chips button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.tabela { overflow-x: auto; margin: 0 -4px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; padding: 6px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+td:first-child { font-family: var(--font-ui); }
+.vazio { text-align: center; color: var(--muted); padding: 18px 8px; font-size: 14px; }
+
+.aviso { background: var(--warn-soft); color: var(--fg); border-radius: 12px; padding: 12px 14px; font-size: 13.5px; }
+.aviso b { color: var(--warn); }
+.erro-box { background: var(--down-soft); color: var(--fg); border-radius: 12px; padding: 12px 14px; font-size: 13.5px; }
+.prosa { display: grid; gap: 10px; color: var(--fg); font-size: 14.5px; max-width: 65ch; }
+.prosa p { color: var(--fg); }
+.prosa ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.esqueleto { color: var(--muted); }
+
+/* abas */
+nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+nav.abas .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+nav.abas button { border: 0; background: transparent; display: grid; justify-items: center; gap: 3px; padding: 6px 2px; border-radius: 10px; color: var(--muted); font-size: 11.5px; font-weight: 700; }
+nav.abas button svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+nav.abas button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: no-preference) { .card { animation: entra .25s ease-out; } @keyframes entra { from { transform: translateY(4px); opacity: .6; } } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap topo">
+    <div class="marca"><i id="status" title="status da conexão"></i>Robô Cripto</div>
+    <label for="par" class="sr" hidden>Par</label>
+    <select id="par" aria-label="Par negociado">
+      <option value="BTCUSDT">BTC/USDT</option>
+      <option value="ETHUSDT">ETH/USDT</option>
+      <option value="SOLUSDT">SOL/USDT</option>
+      <option value="BNBUSDT">BNB/USDT</option>
+      <option value="XRPUSDT">XRP/USDT</option>
+    </select>
+    <div class="seg" role="group" aria-label="Tempo gráfico" id="tfs">
+      <button data-tf="1h" aria-pressed="false">1h</button>
+      <button data-tf="4h" aria-pressed="true">4h</button>
+      <button data-tf="1d" aria-pressed="false">1d</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="preco">
+    <small id="rotuloPar">Binance · BTC/USDT</small>
+    <div class="valor num" id="preco">carregando…</div>
+    <div class="linha"><span class="pill neutro" id="var24">24h —</span><span class="meta" id="atualizado">buscando preços reais…</span></div>
+  </div>
+
+  <main>
+    <!-- SINAL -->
+    <section id="aba-sinal" aria-label="Sinal">
+      <div class="card estado" id="cardEstado">
+        <div class="faixa"></div>
+        <h2>Sinal da estratégia</h2>
+        <div class="linha"><span class="pill neutro" id="estadoPill">analisando</span><span class="meta" id="proximo"></span></div>
+        <h3 id="estadoTitulo">Calculando médias e RSI…</h3>
+        <p id="estadoTexto"></p>
+        <ul class="checks" id="checks"></ul>
+      </div>
+      <div class="card">
+        <h2>Gráfico</h2>
+        <canvas id="grafico" height="260" aria-label="Gráfico de preço com médias móveis e sinais"></canvas>
+        <div class="legenda">
+          <span><i style="background:var(--accent)"></i>EMA 9</span>
+          <span><i style="background:var(--warn)"></i>EMA 21</span>
+          <span><i style="background:var(--muted)"></i>EMA 200</span>
+          <span style="color:var(--up)">▲ compra</span><span style="color:var(--down)">▼ venda</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Se comprasse agora</h2>
+        <div class="grade" id="niveis"></div>
+        <p style="font-size:13px">Stop = preço − 3 × ATR · Alvo = preço + 4 × ATR · Tamanho para arriscar 1% do capital.</p>
+      </div>
+    </section>
+
+    <!-- CARTEIRA -->
+    <section id="aba-carteira" aria-label="Carteira simulada" hidden>
+      <div id="carteiraConteudo"></div>
+    </section>
+
+    <!-- BACKTEST -->
+    <section id="aba-backtest" aria-label="Backtest" hidden>
+      <div class="card">
+        <h2>Backtest com histórico real</h2>
+        <p>Roda a estratégia nos candles reais da Binance, com taxa de 0,1% e slippage de 0,05% por ordem.</p>
+        <div class="chips" id="dias">
+          <button data-d="90" aria-pressed="false">90 dias</button>
+          <button data-d="180" aria-pressed="false">180 dias</button>
+          <button data-d="365" aria-pressed="true">1 ano</button>
+          <button data-d="730" aria-pressed="false">2 anos</button>
+        </div>
+        <button class="btn" id="rodarBt">Rodar backtest</button>
+      </div>
+      <div id="btResultado"></div>
+    </section>
+
+    <!-- SOBRE -->
+    <section id="aba-sobre" aria-label="Sobre" hidden>
+      <div class="card">
+        <h2>Instalar no iPhone</h2>
+        <div class="prosa">
+          <ol>
+            <li>Abra este endereço no <b>Safari</b>.</li>
+            <li>Toque em <b>Compartilhar</b> (o quadrado com a seta para cima).</li>
+            <li>Escolha <b>Adicionar à Tela de Início</b> e confirme.</li>
+          </ol>
+          <p>O ícone abre o app em tela cheia, como um aplicativo.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Como funciona</h2>
+        <div class="prosa">
+          <p><b>Compra</b> quando há tendência de alta (EMA 9 acima da EMA 21, preço acima da EMA 200 e EMA 200 subindo) e aparece um gatilho: a EMA 9 cruza para cima da EMA 21, ou o preço corrige e volta para cima da EMA 9. Só compra com RSI abaixo de 70.</p>
+          <p><b>Vende</b> no cruzamento para baixo, no stop loss (3 × ATR abaixo da entrada), no alvo (4 × ATR acima) ou no stop móvel, que sobe junto com o preço.</p>
+          <p>O sinal é calculado no fechamento do candle e executado na abertura do seguinte. É a mesma lógica do robô em Python, conferida com resultado idêntico.</p>
+          <p>A <b>carteira simulada</b> recalcula tudo desde a data em que você a iniciou. Por isso ela fica em dia mesmo que o app passe dias fechado.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Resultado com dados reais</h2>
+        <div class="prosa">
+          <p>Nos 2 anos até 19/10/2026, nenhuma configuração teve lucro consistente. Em tempos gráficos curtos as taxas consomem o resultado. No 4h e no diário o robô perde bem menos que o ativo nas quedas, mas fica perto do zero.</p>
+        </div>
+        <div class="aviso"><b>Só simulação.</b> Este app não opera dinheiro de verdade e não é recomendação de investimento.</div>
+      </div>
+      <p class="meta" style="text-align:center">Preços: API pública da Binance · os dados ficam só neste aparelho</p>
+    </section>
+  </main>
+</div>
+
+<nav class="abas" aria-label="Seções">
+  <div class="in" role="tablist">
+    <button role="tab" data-aba="sinal" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>Sinal</button>
+    <button role="tab" data-aba="carteira" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14.5h2"/></svg>Carteira</button>
+    <button role="tab" data-aba="backtest" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M8 15v-3M12 15V8M16 15v-5"/></svg>Backtest</button>
+    <button role="tab" data-aba="sobre" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Sobre</button>
+  </div>
+</nav>
+
+<script src="motor.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
