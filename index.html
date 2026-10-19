@@ -64,6 +64,8 @@ button { cursor: pointer; }
 header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
 .topo { display: flex; align-items: center; gap: 10px; padding-block: 10px; }
 .marca { font-weight: 800; letter-spacing: -0.01em; font-size: 15px; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+.marca { white-space: nowrap; }
+@media (max-width: 400px) { .topo { gap: 8px; } .marca { font-size: 13.5px; } select#par { padding-left: 8px; font-size: 13px; } .seg button { padding: 5px 8px; } }
 .marca i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; }
 .marca i.ok { background: var(--up); box-shadow: 0 0 0 3px var(--up-soft); }
 .marca i.erro { background: var(--down); }

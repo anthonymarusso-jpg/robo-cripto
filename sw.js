@@ -1,5 +1,5 @@
 /* Guarda os arquivos do app para abrir rápido e funcionar sem internet (os preços sempre vêm da rede). */
-const VERSAO = "robo-cripto-v1";
+const VERSAO = "robo-cripto-v2";
 const ARQUIVOS = ["./", "index.html", "app.js", "motor.js", "manifest.webmanifest", "icone-180.png", "icone-192.png", "icone-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSAO).then(c => c.addAll(ARQUIVOS))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
